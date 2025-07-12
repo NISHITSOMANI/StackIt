@@ -34,6 +34,24 @@ stackit/
 │   ├── config/
 │   │   └── db.js
 │   └── app.js
+├── ai-review/
+│   ├── manage.py
+│   ├── ai_review/
+│   │   ├── __init__.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   ├── wsgi.py
+│   ├── scanner/
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   ├── views.py
+│   │   ├── tasks.py
+│   │   ├── flags.py
+│   │   └── utils/
+│   │       ├── nlp_model.py
+│   │       └── auto_reject.py
+│   ├── templates/
+│   └── requirements.txt
 ├── frontend/
 │   ├── public/
 │   ├── src/
