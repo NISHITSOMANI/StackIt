@@ -37,6 +37,10 @@ const QuestionDetail = () => {
   const [editQuestionContent, setEditQuestionContent] = useState('');
   const [editAnswerContent, setEditAnswerContent] = useState('');
 
+  // Vote tracking states
+  const [questionUserVote, setQuestionUserVote] = useState(null);
+  const [answerUserVotes, setAnswerUserVotes] = useState({});
+
   // Fetch question data from API
   useEffect(() => {
     const fetchQuestion = async () => {
@@ -47,6 +51,23 @@ const QuestionDetail = () => {
         console.log('Answers:', questionData.answers);
         setQuestion(questionData);
         setAnswers(questionData.answers || []);
+
+        // Set user vote states from API response
+        if (questionData.userVotes) {
+          setQuestionUserVote(questionData.userVotes.question || null);
+
+          const answerVotes = {};
+          Object.keys(questionData.userVotes).forEach(key => {
+            if (key.startsWith('answer_')) {
+              const answerId = key.replace('answer_', '');
+              answerVotes[answerId] = questionData.userVotes[key];
+            }
+          });
+          setAnswerUserVotes(answerVotes);
+        } else {
+          setQuestionUserVote(null);
+          setAnswerUserVotes({});
+        }
       } catch (err) {
         setError('Failed to load question');
         console.error('Error fetching question:', err);
@@ -70,27 +91,36 @@ const QuestionDetail = () => {
         console.log('Voting on question...');
         response = await api.voteQuestion(itemId, vote);
         console.log('Question vote response:', response);
-        // Update question votes
+        // Update question votes and user vote state
         setQuestion(prev => ({
           ...prev,
           upvotes: response.upvotes,
           downvotes: response.downvotes
         }));
+        setQuestionUserVote(response.userVote);
       } else {
         console.log('Voting on answer...');
         response = await api.voteAnswer(itemId, vote);
         console.log('Answer vote response:', response);
-        // Update answer votes
+        // Update answer votes and user vote state
         setAnswers(prev => prev.map(answer =>
           answer._id === itemId
             ? { ...answer, upvotes: response.upvotes, downvotes: response.downvotes }
             : answer
         ));
+        setAnswerUserVotes(prev => ({
+          ...prev,
+          [itemId]: response.userVote
+        }));
       }
     } catch (err) {
       console.error('Vote failed:', err);
       console.error('Error details:', err.message);
-      alert('Failed to register vote. Please try again.');
+      if (err.message.includes('cannot vote on your own')) {
+        alert('You cannot vote on your own content.');
+      } else {
+        alert('Failed to register vote. Please try again.');
+      }
     }
   };
 
@@ -221,18 +251,28 @@ const QuestionDetail = () => {
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={() => handleVote('up', question._id, 'question')}
-              className="p-1 lg:p-2 hover:bg-secondary-100 rounded-lg transition-colors"
+              className={`p-1 lg:p-2 rounded-lg transition-colors ${questionUserVote === 1
+                ? 'bg-primary-100 text-primary-600'
+                : 'hover:bg-secondary-100 text-secondary-400'
+                }`}
+              disabled={user && question.user && user.id === question.user._id}
+              title={user && question.user && user.id === question.user._id ? "You cannot vote on your own question" : "Upvote"}
             >
-              <ArrowUp className="w-4 h-4 lg:w-5 lg:h-5 text-secondary-400" />
+              <ArrowUp className="w-4 h-4 lg:w-5 lg:h-5" />
             </button>
             <span className="text-base lg:text-lg font-semibold text-secondary-900">
               {(question.upvotes || 0) - (question.downvotes || 0)}
             </span>
             <button
               onClick={() => handleVote('down', question._id, 'question')}
-              className="p-1 lg:p-2 hover:bg-secondary-100 rounded-lg transition-colors"
+              className={`p-1 lg:p-2 rounded-lg transition-colors ${questionUserVote === -1
+                ? 'bg-red-100 text-red-600'
+                : 'hover:bg-secondary-100 text-secondary-400'
+                }`}
+              disabled={user && question.user && user.id === question.user._id}
+              title={user && question.user && user.id === question.user._id ? "You cannot vote on your own question" : "Downvote"}
             >
-              <ArrowDown className="w-4 h-4 lg:w-5 lg:h-5 text-secondary-400" />
+              <ArrowDown className="w-4 h-4 lg:w-5 lg:h-5" />
             </button>
           </div>
 
@@ -392,18 +432,28 @@ const QuestionDetail = () => {
                 <div className="flex flex-col items-center gap-2">
                   <button
                     onClick={() => handleVote('up', answer._id, 'answer')}
-                    className="p-1 lg:p-2 hover:bg-secondary-100 rounded-lg transition-colors"
+                    className={`p-1 lg:p-2 rounded-lg transition-colors ${answerUserVotes[answer._id] === 1
+                      ? 'bg-primary-100 text-primary-600'
+                      : 'hover:bg-secondary-100 text-secondary-400'
+                      }`}
+                    disabled={user && answer.user && user.id === answer.user._id}
+                    title={user && answer.user && user.id === answer.user._id ? "You cannot vote on your own answer" : "Upvote"}
                   >
-                    <ArrowUp className="w-4 h-4 lg:w-5 lg:h-5 text-secondary-400" />
+                    <ArrowUp className="w-4 h-4 lg:w-5 lg:h-5" />
                   </button>
                   <span className="text-base lg:text-lg font-semibold text-secondary-900">
                     {(answer.upvotes || 0) - (answer.downvotes || 0)}
                   </span>
                   <button
                     onClick={() => handleVote('down', answer._id, 'answer')}
-                    className="p-1 lg:p-2 hover:bg-secondary-100 rounded-lg transition-colors"
+                    className={`p-1 lg:p-2 rounded-lg transition-colors ${answerUserVotes[answer._id] === -1
+                      ? 'bg-red-100 text-red-600'
+                      : 'hover:bg-secondary-100 text-secondary-400'
+                      }`}
+                    disabled={user && answer.user && user.id === answer.user._id}
+                    title={user && answer.user && user.id === answer.user._id ? "You cannot vote on your own answer" : "Downvote"}
                   >
-                    <ArrowDown className="w-4 h-4 lg:w-5 lg:h-5 text-secondary-400" />
+                    <ArrowDown className="w-4 h-4 lg:w-5 lg:h-5" />
                   </button>
                   {answer.isAccepted && (
                     <div className="w-5 h-5 lg:w-6 lg:h-6 bg-green-500 rounded-full flex items-center justify-center">

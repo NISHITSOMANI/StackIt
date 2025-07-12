@@ -122,7 +122,27 @@ exports.getQuestionById = async (req, res) => {
             return res.status(404).json({ message: "Question not found" });
         }
 
-        res.json(question);
+        // If user is authenticated, get their votes
+        let userVotes = {};
+        if (req.user) {
+            const votes = await Vote.find({
+                user: req.user.id,
+                $or: [
+                    { targetType: "question", targetId: req.params.id },
+                    { targetType: "answer", targetId: { $in: question.answers.map(a => a._id) } }
+                ]
+            });
+
+            votes.forEach(vote => {
+                const key = vote.targetType === "question" ? "question" : `answer_${vote.targetId}`;
+                userVotes[key] = vote.voteValue;
+            });
+        }
+
+        res.json({
+            ...question.toObject(),
+            userVotes
+        });
     } catch (err) {
         res.status(500).json({ message: "Failed to fetch question", error: err.message });
     }

@@ -84,24 +84,96 @@ exports.voteAnswer = async (req, res) => {
         const answer = await Answer.findById(req.params.id);
         if (!answer) return res.status(404).json({ message: "Answer not found" });
 
-        const { vote } = req.body;
+        // Check if user is voting on their own answer
+        if (answer.user.toString() === req.user.id) {
+            return res.status(400).json({ message: "You cannot vote on your own answer" });
+        }
 
-        if (vote === 1) {
-            answer.upvotes += 1;
-        } else if (vote === -1) {
-            answer.downvotes += 1;
-        } else {
+        const { vote } = req.body;
+        if (vote !== 1 && vote !== -1) {
             return res.status(400).json({ message: "Invalid vote value. Use 1 or -1." });
         }
 
-        await answer.save();
-
-        res.json({
-            message: "Vote registered",
-            upvotes: answer.upvotes,
-            downvotes: answer.downvotes,
+        // Check if user has already voted
+        let existingVote = await Vote.findOne({
+            user: req.user.id,
+            targetType: "answer",
+            targetId: req.params.id
         });
+
+        if (existingVote) {
+            // User has already voted
+            if (existingVote.voteValue === vote) {
+                // Same vote - remove it (undo vote)
+                if (vote === 1) {
+                    answer.upvotes -= 1;
+                } else {
+                    answer.downvotes -= 1;
+                }
+                await existingVote.deleteOne();
+                await answer.save();
+
+                res.json({
+                    message: "Vote removed",
+                    upvotes: answer.upvotes,
+                    downvotes: answer.downvotes,
+                    userVote: null
+                });
+            } else {
+                // Different vote - change it
+                if (existingVote.voteValue === 1) {
+                    answer.upvotes -= 1;
+                } else {
+                    answer.downvotes -= 1;
+                }
+
+                if (vote === 1) {
+                    answer.upvotes += 1;
+                } else {
+                    answer.downvotes += 1;
+                }
+
+                existingVote.voteValue = vote;
+                await existingVote.save();
+                await answer.save();
+
+                res.json({
+                    message: "Vote changed",
+                    upvotes: answer.upvotes,
+                    downvotes: answer.downvotes,
+                    userVote: vote
+                });
+            }
+        } else {
+            // New vote
+            if (vote === 1) {
+                answer.upvotes += 1;
+            } else {
+                answer.downvotes += 1;
+            }
+
+            // Create new vote record
+            await Vote.create({
+                user: req.user.id,
+                targetType: "answer",
+                targetId: req.params.id,
+                voteValue: vote
+            });
+
+            await answer.save();
+
+            res.json({
+                message: "Vote registered",
+                upvotes: answer.upvotes,
+                downvotes: answer.downvotes,
+                userVote: vote
+            });
+        }
     } catch (err) {
+        if (err.code === 11000) {
+            // Duplicate vote error (shouldn't happen with our logic, but just in case)
+            return res.status(400).json({ message: "You have already voted on this answer" });
+        }
         res.status(500).json({ message: "Vote failed", error: err.message });
     }
 };
