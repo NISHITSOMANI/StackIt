@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const questionsPerPage = 5;
+  const [questionsPerPage, setQuestionsPerPage] = useState(5);
 
   // Mock data
   const stats = [
@@ -181,7 +181,7 @@ const Dashboard = () => {
   // Reset to first page when search or filter changes
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, questionsPerPage]);
 
   return (
     <div className="space-y-6">
@@ -212,70 +212,6 @@ const Dashboard = () => {
                       </div>
           ))}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-secondary-200 gap-4">
-              <div className="text-sm text-secondary-600">
-                Page {currentPage} of {totalPages}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="flex items-center gap-1 px-2 sm:px-3 py-2 text-sm font-medium text-secondary-700 bg-white border border-secondary-300 rounded-lg hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">Previous</span>
-                </button>
-                
-                {/* Page Numbers */}
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                    // Show first page, last page, current page, and pages around current
-                    const shouldShow = 
-                      page === 1 || 
-                      page === totalPages || 
-                      (page >= currentPage - 1 && page <= currentPage + 1);
-                    
-                    if (shouldShow) {
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`px-2 sm:px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            currentPage === page
-                              ? 'bg-primary-600 text-white'
-                              : 'text-secondary-700 bg-white border border-secondary-300 hover:bg-secondary-50'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    } else if (
-                      (page === currentPage - 2 && currentPage > 3) ||
-                      (page === currentPage + 2 && currentPage < totalPages - 2)
-                    ) {
-                      return (
-                        <span key={page} className="px-1 sm:px-2 text-secondary-500">
-                          ...
-                        </span>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
-
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="flex items-center gap-1 px-2 sm:px-3 py-2 text-sm font-medium text-secondary-700 bg-white border border-secondary-300 rounded-lg hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <span className="hidden sm:inline">Next</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
       {/* Search and Filter */}
@@ -396,6 +332,175 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Enhanced Pagination - Bottom of Page */}
+      {totalQuestions > 0 && (
+        <div className="mt-8 w-full">
+          <div className="bg-white rounded-xl border border-secondary-200 p-6">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+              {/* Left Side - Info and Page Size */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="text-sm text-secondary-600">
+                  Showing <span className="font-semibold text-secondary-900">{startIndex + 1}</span> to{' '}
+                  <span className="font-semibold text-secondary-900">{Math.min(endIndex, totalQuestions)}</span> of{' '}
+                  <span className="font-semibold text-secondary-900">{totalQuestions}</span> questions
+                </div>
+                
+                {/* Page Size Selector */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-secondary-600">Show:</label>
+                  <select
+                    value={questionsPerPage}
+                    onChange={(e) => setQuestionsPerPage(Number(e.target.value))}
+                    className="px-3 py-1 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                  <span className="text-sm text-secondary-600">per page</span>
+                </div>
+              </div>
+
+              {/* Right Side - Navigation */}
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  {/* First Page */}
+                  <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                    className="flex items-center justify-center w-10 h-10 text-sm font-medium text-secondary-700 bg-white border border-secondary-300 rounded-lg hover:bg-secondary-50 hover:border-secondary-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    title="First page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4 -ml-2" />
+                  </button>
+
+                  {/* Previous Page */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="flex items-center justify-center w-10 h-10 text-sm font-medium text-secondary-700 bg-white border border-secondary-300 rounded-lg hover:bg-secondary-50 hover:border-secondary-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    title="Previous page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {(() => {
+                      const pages = [];
+                      const maxVisiblePages = 7;
+                      
+                      if (totalPages <= maxVisiblePages) {
+                        // Show all pages if total is small
+                        for (let i = 1; i <= totalPages; i++) {
+                          pages.push(i);
+                        }
+                      } else {
+                        // Show first page
+                        pages.push(1);
+                        
+                        if (currentPage > 4) {
+                          pages.push('...');
+                        }
+                        
+                        // Show pages around current
+                        const start = Math.max(2, currentPage - 1);
+                        const end = Math.min(totalPages - 1, currentPage + 1);
+                        
+                        for (let i = start; i <= end; i++) {
+                          if (!pages.includes(i)) {
+                            pages.push(i);
+                          }
+                        }
+                        
+                        if (currentPage < totalPages - 3) {
+                          pages.push('...');
+                        }
+                        
+                        // Show last page
+                        if (totalPages > 1) {
+                          pages.push(totalPages);
+                        }
+                      }
+                      
+                      return pages.map((page, index) => {
+                        if (page === '...') {
+                          return (
+                            <span key={`ellipsis-${index}`} className="px-2 text-secondary-500">
+                              ...
+                            </span>
+                          );
+                        }
+                        
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg transition-all duration-200 ${
+                              currentPage === page
+                                ? 'bg-primary-600 text-white shadow-md'
+                                : 'text-secondary-700 bg-white border border-secondary-300 hover:bg-secondary-50 hover:border-secondary-400'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* Next Page */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center justify-center w-10 h-10 text-sm font-medium text-secondary-700 bg-white border border-secondary-300 rounded-lg hover:bg-secondary-50 hover:border-secondary-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    title="Next page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+
+                  {/* Last Page */}
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center justify-center w-10 h-10 text-sm font-medium text-secondary-700 bg-white border border-secondary-300 rounded-lg hover:bg-secondary-50 hover:border-secondary-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    title="Last page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 -ml-2" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Jump */}
+            {totalPages > 10 && (
+              <div className="mt-4 pt-4 border-t border-secondary-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-secondary-600">Go to page:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={totalPages}
+                    value={currentPage}
+                    onChange={(e) => {
+                      const page = parseInt(e.target.value);
+                      if (page >= 1 && page <= totalPages) {
+                        handlePageChange(page);
+                      }
+                    }}
+                    className="w-16 px-2 py-1 text-sm border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                  />
+                  <span className="text-sm text-secondary-600">of {totalPages}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

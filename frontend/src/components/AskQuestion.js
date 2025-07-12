@@ -1,15 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Tag, 
   Image, 
   Code,
-  Send
+  Send,
+  Bold,
+  Italic,
+  Strikethrough,
+  List,
+  ListOrdered,
+  Link,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Smile
 } from 'lucide-react';
 
 const AskQuestion = () => {
   const navigate = useNavigate();
+  const contentRef = useRef(null);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -17,6 +28,10 @@ const AskQuestion = () => {
     tags: []
   });
   const [tagInput, setTagInput] = useState('');
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const categories = [
     { id: 'technology', name: 'Technology' },
@@ -52,6 +67,127 @@ const AskQuestion = () => {
       tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
   };
+
+  // Rich text editor functions
+  const execCommand = (command, value = null) => {
+    document.execCommand(command, false, value);
+    contentRef.current.focus();
+  };
+
+  const formatText = (command) => {
+    execCommand(command);
+    // Update the content state with the formatted HTML
+    setFormData(prev => ({ ...prev, content: contentRef.current.innerHTML }));
+  };
+
+  const insertList = (type) => {
+    if (type === 'bullet') {
+      execCommand('insertUnorderedList');
+    } else {
+      execCommand('insertOrderedList');
+    }
+    setFormData(prev => ({ ...prev, content: contentRef.current.innerHTML }));
+  };
+
+  const setAlignment = (alignment) => {
+    execCommand('justify' + alignment.charAt(0).toUpperCase() + alignment.slice(1));
+    setFormData(prev => ({ ...prev, content: contentRef.current.innerHTML }));
+  };
+
+  const insertLink = () => {
+    if (linkText && linkUrl) {
+      execCommand('createLink', linkUrl);
+      setShowLinkModal(false);
+      setLinkUrl('');
+      setLinkText('');
+      setFormData(prev => ({ ...prev, content: contentRef.current.innerHTML }));
+    }
+  };
+
+  const insertEmoji = (emoji) => {
+    execCommand('insertText', emoji);
+    setShowEmojiPicker(false);
+    setFormData(prev => ({ ...prev, content: contentRef.current.innerHTML }));
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = document.createElement('img');
+        img.src = event.target.result;
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        
+        // Insert the image at cursor position
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(img);
+        }
+        
+        setFormData(prev => ({ ...prev, content: contentRef.current.innerHTML }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleContentChange = () => {
+    setFormData(prev => ({ ...prev, content: contentRef.current.innerHTML }));
+  };
+
+  // Add placeholder functionality
+  React.useEffect(() => {
+    const editor = contentRef.current;
+    if (editor) {
+      const handleFocus = () => {
+        if (editor.innerHTML === '' || editor.innerHTML === '<br>') {
+          editor.innerHTML = '';
+        }
+      };
+      
+      const handleBlur = () => {
+        if (editor.innerHTML === '' || editor.innerHTML === '<br>') {
+          editor.innerHTML = '';
+        }
+      };
+
+      editor.addEventListener('focus', handleFocus);
+      editor.addEventListener('blur', handleBlur);
+      
+      return () => {
+        editor.removeEventListener('focus', handleFocus);
+        editor.removeEventListener('blur', handleBlur);
+      };
+    }
+  }, []);
+
+  // Initialize content if needed
+  React.useEffect(() => {
+    if (contentRef.current && formData.content) {
+      contentRef.current.innerHTML = formData.content;
+    }
+  }, []);
+
+  // Add CSS for placeholder
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      [contenteditable]:empty:before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+        pointer-events: none;
+        position: absolute;
+      }
+      [contenteditable]:focus:empty:before {
+        display: none;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -125,26 +261,173 @@ const AskQuestion = () => {
           <label htmlFor="content" className="block text-sm font-medium text-secondary-900 mb-2">
             Question Details *
           </label>
-          <textarea
-            id="content"
-            name="content"
-            value={formData.content}
-            onChange={handleInputChange}
-            rows={8}
-            placeholder="Provide more context about your question. You can include code snippets, error messages, or any relevant details."
-            className="input-field resize-none"
-            required
-          />
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mt-3">
-            <button type="button" className="flex items-center gap-2 text-sm text-secondary-600 hover:text-secondary-900">
-              <Image className="w-4 h-4" />
-              Add Image
-            </button>
-            <button type="button" className="flex items-center gap-2 text-sm text-secondary-600 hover:text-secondary-900">
-              <Code className="w-4 h-4" />
-              Add Code Block
-            </button>
+          
+          {/* Rich Text Editor Toolbar */}
+          <div className="border border-secondary-300 rounded-t-lg bg-secondary-50 p-3 flex flex-wrap items-center gap-2">
+            {/* Text Formatting */}
+            <div className="flex items-center gap-1 border-r border-secondary-300 pr-3">
+              <button
+                type="button"
+                onClick={() => formatText('bold')}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Bold"
+              >
+                <Bold className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => formatText('italic')}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Italic"
+              >
+                <Italic className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => formatText('strikeThrough')}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Strikethrough"
+              >
+                <Strikethrough className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Lists */}
+            <div className="flex items-center gap-1 border-r border-secondary-300 pr-3">
+              <button
+                type="button"
+                onClick={() => insertList('bullet')}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Bullet List"
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertList('numbered')}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Numbered List"
+              >
+                <ListOrdered className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Alignment */}
+            <div className="flex items-center gap-1 border-r border-secondary-300 pr-3">
+              <button
+                type="button"
+                onClick={() => setAlignment('left')}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Align Left"
+              >
+                <AlignLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setAlignment('center')}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Align Center"
+              >
+                <AlignCenter className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setAlignment('right')}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Align Right"
+              >
+                <AlignRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Media */}
+            <div className="flex items-center gap-1 border-r border-secondary-300 pr-3">
+              <label className="p-2 hover:bg-secondary-200 rounded-lg transition-colors cursor-pointer">
+                <Image className="w-4 h-4" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowLinkModal(true)}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Insert Link"
+              >
+                <Link className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Insert Emoji"
+              >
+                <Smile className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Code */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const pre = document.createElement('pre');
+                  const code = document.createElement('code');
+                  code.textContent = 'Your code here';
+                  pre.appendChild(code);
+                  
+                  const selection = window.getSelection();
+                  if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(pre);
+                  }
+                  
+                  setFormData(prev => ({ ...prev, content: contentRef.current.innerHTML }));
+                }}
+                className="p-2 hover:bg-secondary-200 rounded-lg transition-colors"
+                title="Code Block"
+              >
+                <Code className="w-4 h-4" />
+              </button>
+            </div>
           </div>
+
+          {/* Emoji Picker */}
+          {showEmojiPicker && (
+            <div className="border border-secondary-300 bg-white p-3 rounded-b-lg">
+              <div className="grid grid-cols-8 gap-2">
+                {['😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💡', '✅', '❌', '⚠️', '📝', '🔗', '📷', '💻', '🎯', '🚀', '⭐', '💪', '🎉', '🙏', '👋', '🤝'].map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => insertEmoji(emoji)}
+                    className="p-2 hover:bg-secondary-100 rounded-lg transition-colors text-lg"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Rich Text Editor */}
+          <div
+            ref={contentRef}
+            contentEditable
+            onInput={handleContentChange}
+            onBlur={handleContentChange}
+            className="w-full px-4 py-3 border border-secondary-300 rounded-b-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 min-h-[200px] max-h-[400px] overflow-y-auto"
+            style={{ 
+              outline: 'none',
+              lineHeight: '1.6',
+              fontFamily: 'inherit'
+            }}
+            data-placeholder="Provide details about your question.You can include code snippets,error messages, or any explanation."
+          />
         </div>
 
         {/* Tags */}
@@ -220,6 +503,61 @@ const AskQuestion = () => {
           <li>• Add relevant tags to help others find your question</li>
         </ul>
       </div>
+
+      {/* Link Modal */}
+      {showLinkModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-secondary-900 mb-4">Insert Link</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-secondary-900 mb-2">
+                  Link Text
+                </label>
+                <input
+                  type="text"
+                  value={linkText}
+                  onChange={(e) => setLinkText(e.target.value)}
+                  placeholder="Link text to display"
+                  className="w-full px-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary-900 mb-2">
+                  URL
+                </label>
+                <input
+                  type="url"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full px-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLinkModal(false);
+                  setLinkUrl('');
+                  setLinkText('');
+                }}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={insertLink}
+                className="btn-primary"
+              >
+                Insert Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

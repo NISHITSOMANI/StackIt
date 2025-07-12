@@ -2,13 +2,9 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
-  MessageSquare, 
+  MessageSquare,
   Plus, 
-  Users, 
-  Settings, 
-  Bookmark,
-  TrendingUp,
-  Award
+  Settings
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -16,12 +12,7 @@ const Sidebar = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Questions', href: '/questions', icon: MessageSquare },
     { name: 'Ask Question', href: '/ask', icon: Plus },
-    { name: 'Community', href: '/community', icon: Users },
-    { name: 'Trending', href: '/trending', icon: TrendingUp },
-    { name: 'Bookmarks', href: '/bookmarks', icon: Bookmark },
-    { name: 'Leaderboard', href: '/leaderboard', icon: Award },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
