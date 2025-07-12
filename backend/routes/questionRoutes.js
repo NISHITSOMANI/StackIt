@@ -9,7 +9,8 @@ const {
     updateQuestion,
     deleteQuestion,
 } = require("../controllers/questionController");
-const { validateQuestion, validateVote } = require("../middlewares/validationMiddleware");
+const { submitAnswer } = require("../controllers/answerController");
+const { validateQuestion, validateVote, validateAnswer } = require("../middlewares/validationMiddleware");
 
 // Get all questions
 router.get("/", getAllQuestions);
@@ -28,5 +29,8 @@ router.put("/:id", auth, validateQuestion, updateQuestion);
 
 // Delete a question
 router.delete("/:id", auth, deleteQuestion);
+
+// Submit an answer to a question
+router.post("/:id/answers", auth, validateAnswer, submitAnswer);
 
 module.exports = router;

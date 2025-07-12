@@ -2,16 +2,12 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/authMiddleware");
 const {
-    submitAnswer,
     voteAnswer,
     acceptAnswer,
     updateAnswer,
     deleteAnswer,
 } = require("../controllers/answerController");
-const { validateAnswer, validateVote } = require("../middlewares/validationMiddleware");
-
-// Submit an answer to a question
-router.post("/questions/:id/answers", auth, validateAnswer, submitAnswer);
+const { validateVote, validateAnswer } = require("../middlewares/validationMiddleware");
 
 // Vote on an answer (upvote/downvote)
 router.post("/:id/vote", auth, validateVote, voteAnswer);

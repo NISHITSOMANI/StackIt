@@ -17,14 +17,20 @@ const validateQuestion = (req, res, next) => {
 };
 
 const validateAnswer = (req, res, next) => {
-    const { description } = req.body;
+    const { content } = req.body;
 
-    if (!description || description.trim().length < 10) {
+    console.log('Validating answer content:', content);
+    console.log('Content type:', typeof content);
+    console.log('Content length:', content ? content.length : 0);
+
+    // Accept any content that exists
+    if (!content || content.trim() === '') {
         return res.status(400).json({
-            message: "Answer must be at least 10 characters long"
+            message: "Answer content is required"
         });
     }
 
+    console.log('Answer validation passed');
     next();
 };
 

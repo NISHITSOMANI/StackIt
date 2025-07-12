@@ -4,7 +4,6 @@ import { api, handleApiError } from '../services/api';
 import {
   MessageSquare,
   Users,
-  TrendingUp,
   Clock,
   Search,
   Filter,
@@ -34,7 +33,7 @@ const Dashboard = () => {
   const statsData = [
     { title: 'Total Questions', value: (stats.totalQuestions || 0).toString(), icon: MessageSquare, color: 'text-blue-600' },
     { title: 'Active Users', value: (stats.activeUsers || 0).toString(), icon: Users, color: 'text-green-600' },
-    { title: 'Answers Today', value: (stats.answersToday || 0).toString(), icon: TrendingUp, color: 'text-purple-600' },
+    { title: 'Answers Today', value: (stats.answersToday || 0).toString(), icon: MessageCircle, color: 'text-purple-600' },
     { title: 'Response Time', value: stats.responseTime || '0h', icon: Clock, color: 'text-orange-600' },
   ];
 
@@ -96,13 +95,7 @@ const Dashboard = () => {
     fetchQuestions();
   }, [searchQuery]); // Re-fetch when search query changes
 
-  const trendingTopics = [
-    { name: 'React Hooks', count: 45 },
-    { name: 'TypeScript', count: 38 },
-    { name: 'Tailwind CSS', count: 32 },
-    { name: 'Node.js', count: 28 },
-    { name: 'GraphQL', count: 25 },
-  ];
+
 
   // Filter questions based on search and category
   const filteredQuestions = Array.isArray(questions) ? questions.filter(question => {
@@ -230,7 +223,9 @@ const Dashboard = () => {
                 <div className="flex flex-col items-center gap-1 min-w-[50px] lg:min-w-[60px]">
                   <button className="flex flex-col items-center p-1 lg:p-2 hover:bg-secondary-100 rounded-lg transition-colors">
                     <ArrowUp className="w-4 h-4 lg:w-5 lg:h-5 text-secondary-400" />
-                    <span className="text-xs lg:text-sm font-medium text-secondary-900">0</span>
+                    <span className="text-xs lg:text-sm font-medium text-secondary-900">
+                      {(question.upvotes || 0) - (question.downvotes || 0)}
+                    </span>
                   </button>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -266,19 +261,6 @@ const Dashboard = () => {
 
         {/* Sidebar */}
         <div className="space-y-4 lg:space-y-6">
-          {/* Trending Topics */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-secondary-900 mb-4">Trending Topics</h3>
-            <div className="space-y-3">
-              {trendingTopics.map((topic, index) => (
-                <div key={index} className="flex items-center justify-between p-3 hover:bg-secondary-50 rounded-lg transition-colors">
-                  <span className="font-medium text-secondary-900">{topic.name}</span>
-                  <span className="text-sm text-secondary-600">{topic.count} questions</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Quick Actions */}
           <div className="card">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">Quick Actions</h3>

@@ -199,8 +199,13 @@ const QuestionDetail = () => {
   const handleSubmitAnswer = async (e) => {
     e.preventDefault();
 
+    console.log('Submitting answer with text:', answerText);
+    console.log('Answer text length:', answerText ? answerText.length : 0);
+    console.log('Answer text trimmed length:', answerText ? answerText.trim().length : 0);
+
     if (answerText.trim()) {
       try {
+        console.log('Sending to API:', { content: answerText });
         await api.submitAnswer(id, { content: answerText });
 
         // Refresh the question to get updated answers
@@ -214,6 +219,9 @@ const QuestionDetail = () => {
         console.error('Failed to submit answer:', err);
         alert('Failed to submit answer. Please try again.');
       }
+    } else {
+      console.log('Answer text is empty or too short');
+      alert('Please enter an answer with at least 10 characters.');
     }
   };
 

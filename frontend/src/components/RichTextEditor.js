@@ -148,8 +148,57 @@ const RichTextEditor = ({
     const handlePaste = useCallback((e) => {
         e.preventDefault();
         const text = e.clipboardData.getData('text/plain');
-        document.execCommand('insertText', false, text);
-    }, []);
+
+        // Check if the pasted content looks like code (has multiple lines or specific patterns)
+        const isCode = text.includes('\n') ||
+            text.includes('function') ||
+            text.includes('const ') ||
+            text.includes('let ') ||
+            text.includes('var ') ||
+            text.includes('if (') ||
+            text.includes('for (') ||
+            text.includes('while (') ||
+            text.includes('{') ||
+            text.includes('}') ||
+            text.includes(';') ||
+            text.includes('//') ||
+            text.includes('/*');
+
+        if (isCode) {
+            // Insert as code block
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const pre = document.createElement('pre');
+                const code = document.createElement('code');
+
+                // Handle multi-line code properly
+                if (text.includes('\n')) {
+                    code.innerHTML = text.split('\n').map(line =>
+                        line === '' ? '<br>' : line
+                    ).join('<br>');
+                } else {
+                    code.textContent = text;
+                }
+
+                pre.appendChild(code);
+                range.deleteContents();
+                range.insertNode(pre);
+
+                // Place cursor after the code block
+                const newRange = document.createRange();
+                newRange.setStartAfter(pre);
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            }
+        } else {
+            // Insert as regular text
+            document.execCommand('insertText', false, text);
+        }
+
+        notifyChange();
+    }, [notifyChange]);
 
     // Handle key events
     const handleKeyDown = useCallback((e) => {
@@ -337,15 +386,29 @@ const RichTextEditor = ({
             const range = selection.getRangeAt(0);
             const pre = document.createElement('pre');
             const code = document.createElement('code');
-            code.textContent = range.toString() || 'Your code here';
+
+            // Set proper content with line breaks
+            const codeText = range.toString() || 'Your code here';
+
+            // Handle multi-line code properly
+            if (codeText.includes('\n')) {
+                // For multi-line code, preserve line breaks
+                code.innerHTML = codeText.split('\n').map(line =>
+                    line === '' ? '<br>' : line
+                ).join('<br>');
+            } else {
+                // For single line, just set the text
+                code.textContent = codeText;
+            }
+
             pre.appendChild(code);
 
             range.deleteContents();
             range.insertNode(pre);
 
-            // Place cursor inside code block
+            // Place cursor inside code block at the end
             const newRange = document.createRange();
-            newRange.setStart(code, 0);
+            newRange.setStart(code, code.childNodes.length);
             newRange.collapse(true);
             selection.removeAllRanges();
             selection.addRange(newRange);
@@ -670,95 +733,109 @@ const RichTextEditor = ({
             )}
 
             {/* CSS for placeholder and content styling */}
-            <style jsx>{`
-                [contenteditable]:empty:before {
-                    content: attr(data-placeholder);
-                    color: #9ca3af;
-                    pointer-events: none;
-                    position: absolute;
-                    font-style: italic;
-                }
-                [contenteditable]:focus:empty:before {
-                    display: none;
-                }
-                [contenteditable] pre {
-                    background-color: #f3f4f6;
-                    border: 1px solid #d1d5db;
-                    border-radius: 0.375rem;
-                    padding: 1rem;
-                    margin: 0.5rem 0;
-                    font-family: 'Courier New', monospace;
-                    font-size: 0.875rem;
-                    line-height: 1.5;
-                    overflow-x: auto;
-                }
-                [contenteditable] code {
-                    background-color: #f3f4f6;
-                    border: 1px solid #d1d5db;
-                    border-radius: 0.25rem;
-                    padding: 0.125rem 0.25rem;
-                    font-family: 'Courier New', monospace;
-                    font-size: 0.875rem;
-                }
-                [contenteditable] blockquote {
-                    border-left: 4px solid #3b82f6;
-                    padding-left: 1rem;
-                    margin: 0.5rem 0;
-                    font-style: italic;
-                    color: #6b7280;
-                }
-                [contenteditable] h1 {
-                    font-size: 1.875rem;
-                    font-weight: 700;
-                    margin: 1rem 0 0.5rem 0;
-                }
-                [contenteditable] h2 {
-                    font-size: 1.5rem;
-                    font-weight: 600;
-                    margin: 0.75rem 0 0.5rem 0;
-                }
-                [contenteditable] h3 {
-                    font-size: 1.25rem;
-                    font-weight: 600;
-                    margin: 0.5rem 0;
-                }
-                [contenteditable] ul, [contenteditable] ol {
-                    margin: 0.5rem 0;
-                    padding-left: 1.5rem;
-                    list-style-position: outside;
-                }
-                [contenteditable] ul {
-                    list-style-type: disc;
-                }
-                [contenteditable] ol {
-                    list-style-type: decimal;
-                }
-                [contenteditable] li {
-                    margin: 0.25rem 0;
-                    display: list-item;
-                }
-                [contenteditable] a {
-                    color: #3b82f6;
-                    text-decoration: underline;
-                }
-                [contenteditable] a:hover {
-                    color: #2563eb;
-                }
-                [contenteditable] img {
-                    max-width: 100%;
-                    height: auto;
-                    border-radius: 8px;
-                    margin: 8px 0;
-                }
-                [contenteditable] *::selection {
-                    background-color: #3b82f6;
-                    color: white;
-                }
-                [contenteditable] *::-moz-selection {
-                    background-color: #3b82f6;
-                    color: white;
-                }
-            `}</style>
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                    .rich-text-editor [contenteditable]:empty:before {
+                        content: attr(data-placeholder);
+                        color: #9ca3af;
+                        pointer-events: none;
+                        position: absolute;
+                        font-style: italic;
+                    }
+                    .rich-text-editor [contenteditable]:focus:empty:before {
+                        display: none;
+                    }
+                    .rich-text-editor [contenteditable] pre {
+                        background-color: #1f2937;
+                        border: 1px solid #374151;
+                        border-radius: 0.375rem;
+                        padding: 1rem;
+                        margin: 0.5rem 0;
+                        font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+                        font-size: 0.875rem;
+                        line-height: 1.6;
+                        overflow-x: auto;
+                        color: #f9fafb;
+                        white-space: pre-wrap;
+                        word-wrap: break-word;
+                    }
+                    .rich-text-editor [contenteditable] pre code {
+                        background: none;
+                        border: none;
+                        padding: 0;
+                        font-family: inherit;
+                        font-size: inherit;
+                        color: inherit;
+                    }
+                    .rich-text-editor [contenteditable] code {
+                        background-color: #f3f4f6;
+                        border: 1px solid #d1d5db;
+                        border-radius: 0.25rem;
+                        padding: 0.125rem 0.25rem;
+                        font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+                        font-size: 0.875rem;
+                        color: #1f2937;
+                    }
+                    .rich-text-editor [contenteditable] blockquote {
+                        border-left: 4px solid #3b82f6;
+                        padding-left: 1rem;
+                        margin: 0.5rem 0;
+                        font-style: italic;
+                        color: #6b7280;
+                    }
+                    .rich-text-editor [contenteditable] h1 {
+                        font-size: 1.875rem;
+                        font-weight: 700;
+                        margin: 1rem 0 0.5rem 0;
+                    }
+                    .rich-text-editor [contenteditable] h2 {
+                        font-size: 1.5rem;
+                        font-weight: 600;
+                        margin: 0.75rem 0 0.5rem 0;
+                    }
+                    .rich-text-editor [contenteditable] h3 {
+                        font-size: 1.25rem;
+                        font-weight: 600;
+                        margin: 0.5rem 0;
+                    }
+                    .rich-text-editor [contenteditable] ul, .rich-text-editor [contenteditable] ol {
+                        margin: 0.5rem 0;
+                        padding-left: 1.5rem;
+                        list-style-position: outside;
+                    }
+                    .rich-text-editor [contenteditable] ul {
+                        list-style-type: disc;
+                    }
+                    .rich-text-editor [contenteditable] ol {
+                        list-style-type: decimal;
+                    }
+                    .rich-text-editor [contenteditable] li {
+                        margin: 0.25rem 0;
+                        display: list-item;
+                    }
+                    .rich-text-editor [contenteditable] a {
+                        color: #3b82f6;
+                        text-decoration: underline;
+                    }
+                    .rich-text-editor [contenteditable] a:hover {
+                        color: #2563eb;
+                    }
+                    .rich-text-editor [contenteditable] img {
+                        max-width: 100%;
+                        height: auto;
+                        border-radius: 8px;
+                        margin: 8px 0;
+                    }
+                    .rich-text-editor [contenteditable] *::selection {
+                        background-color: #3b82f6;
+                        color: white;
+                    }
+                    .rich-text-editor [contenteditable] *::-moz-selection {
+                        background-color: #3b82f6;
+                        color: white;
+                    }
+                `
+            }} />
         </div>
     );
 };

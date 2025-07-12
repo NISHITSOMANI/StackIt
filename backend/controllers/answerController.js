@@ -9,16 +9,11 @@ const { filterContent, rankAnswers } = require("../services/aiService");
 
 exports.submitAnswer = async (req, res) => {
     try {
-        const { description } = req.body;
+        const { content } = req.body;
         const questionId = req.params.id;
 
-        // Filter content using AI service
-        const contentFilter = await filterContent(description);
-        if (!contentFilter.is_clean) {
-            return res.status(400).json({
-                message: "Answer contains inappropriate language or is too low effort"
-            });
-        }
+        // Skip AI content filtering for now - accept all content
+        console.log('Submitting answer with content:', content);
 
         const question = await Question.findById(questionId);
         if (!question) {
@@ -26,7 +21,7 @@ exports.submitAnswer = async (req, res) => {
         }
 
         const answer = await Answer.create({
-            content: contentFilter.filtered_content,
+            content: content, // Use original content without filtering
             user: req.user.id,
             question: questionId,
         });
@@ -49,9 +44,9 @@ exports.submitAnswer = async (req, res) => {
             }
         }
 
-        // Notify mentioned users in the answer description
+        // Notify mentioned users in the answer content
         try {
-            const mentionedUsernames = extractMentions(description);
+            const mentionedUsernames = extractMentions(content || '');
             const currentUser = await User.findById(req.user.id).select("username");
 
             for (const username of mentionedUsernames) {

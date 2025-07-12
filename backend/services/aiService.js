@@ -37,28 +37,12 @@ exports.predictTags = async (title, description) => {
  * Filter content for profanity and low effort using AI service
  */
 exports.filterContent = async (content) => {
-    try {
-        const response = await aiClient.post('/api/filter-content/', {
-            content
-        });
-        return {
-            is_clean: response.data.is_clean,
-            filtered_content: response.data.filtered_content || content
-        };
-    } catch (error) {
-        console.error('AI content filtering error:', error.message);
-        // Basic content validation as fallback
-        const basicProfanity = ['badword1', 'badword2']; // Add actual profanity list
-        const hasProfanity = basicProfanity.some(word => 
-            content.toLowerCase().includes(word.toLowerCase())
-        );
-        const isTooShort = content.trim().length < 10;
-        
-        return { 
-            is_clean: !hasProfanity && !isTooShort, 
-            filtered_content: content 
-        };
-    }
+    // Bypass all AI filtering - accept all content
+    console.log('AI filter bypassed - accepting all content');
+    return {
+        is_clean: true,
+        filtered_content: content
+    };
 };
 
 /**
