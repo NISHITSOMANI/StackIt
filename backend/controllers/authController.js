@@ -1,26 +1,41 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 
+// Generate JWT token
 const generateToken = (user) => {
     return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
         expiresIn: "7d",
     });
 };
 
+// User or admin registration (admins require elevated rights)
 exports.registerUser = async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password, role } = req.body;
+
+        // Prevent anyone from directly registering as admin unless an admin is making the request
+        if (role === "Admin") {
+            if (!req.user || req.user.role !== "Admin") {
+                return res.status(403).json({ message: "Only admins can create other admins" });
+            }
+        }
 
         const existing = await User.findOne({ $or: [{ email }, { username }] });
         if (existing) {
             return res.status(400).json({ message: "User already exists" });
         }
 
-        const user = await User.create({ username, email, password });
+        const user = await User.create({
+            username,
+            email,
+            password,
+            role: role || "User"  // default role
+        });
+
         const token = generateToken(user);
 
         res.status(201).json({
-            message: "User registered successfully",
+            message: `${user.role} registered successfully`,
             token
         });
     } catch (err) {
@@ -28,11 +43,12 @@ exports.registerUser = async (req, res) => {
     }
 };
 
+// Login for both admin & user
 exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
 
+        const user = await User.findOne({ email });
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
@@ -44,7 +60,7 @@ exports.loginUser = async (req, res) => {
         const token = generateToken(user);
 
         res.status(200).json({
-            message: "Login successful",
+            message: `${user.role} login successful`,
             token
         });
     } catch (err) {
@@ -52,6 +68,7 @@ exports.loginUser = async (req, res) => {
     }
 };
 
+// Authenticated user info
 exports.getCurrentUser = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select("-password");

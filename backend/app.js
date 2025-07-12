@@ -35,6 +35,8 @@ app.use("/", commentRoutes);
 // Feedback Route
 app.use("/", require("./routes/feedbackRoutes"));
 
+// Admin Route
+app.use("/", require("./routes/adminRoutes"));
 
 // Default Route
 app.get("/", (req, res) => {

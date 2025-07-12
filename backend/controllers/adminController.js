@@ -29,3 +29,47 @@ exports.getReports = async (req, res) => {
         res.status(500).json({ message: "Failed to fetch reports", error: err.message });
     }
 };
+
+// Approve a pending admin
+exports.approveAdmin = async (req, res) => {
+    try {
+        const admin = await User.findById(req.params.id);
+        if (!admin || admin.role !== "Admin") {
+            return res.status(404).json({ message: "Admin not found" });
+        }
+
+        admin.adminStatus = "approved";
+        await admin.save();
+
+        res.json({ message: "Admin approved successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Failed to approve admin", error: err.message });
+    }
+};
+
+// Decline a pending admin
+exports.declineAdmin = async (req, res) => {
+    try {
+        const admin = await User.findById(req.params.id);
+        if (!admin || admin.role !== "Admin") {
+            return res.status(404).json({ message: "Admin not found" });
+        }
+
+        admin.adminStatus = "declined";
+        await admin.save();
+
+        res.json({ message: "Admin declined successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Failed to decline admin", error: err.message });
+    }
+};
+
+// Get list of pending admins (optional, for admin panel UI)
+exports.getPendingAdmins = async (req, res) => {
+    try {
+        const pendingAdmins = await User.find({ role: "Admin", adminStatus: "pending" }).select("-password");
+        res.json(pendingAdmins);
+    } catch (err) {
+        res.status(500).json({ message: "Failed to fetch pending admins", error: err.message });
+    }
+};
