@@ -2,6 +2,7 @@ const Answer = require("../models/Answer");
 const Question = require("../models/Question");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const Vote = require("../models/Vote");
 const extractMentions = require("../utils/extractMentions");
 const { filterContent, rankAnswers } = require("../services/aiService");
 
