@@ -1,5 +1,6 @@
 const Question = require("../models/Question");
 const Tag = require("../models/Tag");
+const Vote = require("../models/Vote");
 const logActivity = require("../services/activityLogger");
 const { predictTags, filterContent } = require("../services/aiService");
 
@@ -132,24 +133,96 @@ exports.voteQuestion = async (req, res) => {
         const question = await Question.findById(req.params.id);
         if (!question) return res.status(404).json({ message: "Question not found" });
 
-        const { vote } = req.body;
+        // Check if user is voting on their own question
+        if (question.user.toString() === req.user.id) {
+            return res.status(400).json({ message: "You cannot vote on your own question" });
+        }
 
-        if (vote === 1) {
-            question.upvotes += 1;
-        } else if (vote === -1) {
-            question.downvotes += 1;
-        } else {
+        const { vote } = req.body;
+        if (vote !== 1 && vote !== -1) {
             return res.status(400).json({ message: "Invalid vote value. Use 1 or -1." });
         }
 
-        await question.save();
-
-        res.json({
-            message: "Vote registered",
-            upvotes: question.upvotes,
-            downvotes: question.downvotes,
+        // Check if user has already voted
+        let existingVote = await Vote.findOne({
+            user: req.user.id,
+            targetType: "question",
+            targetId: req.params.id
         });
+
+        if (existingVote) {
+            // User has already voted
+            if (existingVote.voteValue === vote) {
+                // Same vote - remove it (undo vote)
+                if (vote === 1) {
+                    question.upvotes -= 1;
+                } else {
+                    question.downvotes -= 1;
+                }
+                await existingVote.deleteOne();
+                await question.save();
+
+                res.json({
+                    message: "Vote removed",
+                    upvotes: question.upvotes,
+                    downvotes: question.downvotes,
+                    userVote: null
+                });
+            } else {
+                // Different vote - change it
+                if (existingVote.voteValue === 1) {
+                    question.upvotes -= 1;
+                } else {
+                    question.downvotes -= 1;
+                }
+
+                if (vote === 1) {
+                    question.upvotes += 1;
+                } else {
+                    question.downvotes += 1;
+                }
+
+                existingVote.voteValue = vote;
+                await existingVote.save();
+                await question.save();
+
+                res.json({
+                    message: "Vote changed",
+                    upvotes: question.upvotes,
+                    downvotes: question.downvotes,
+                    userVote: vote
+                });
+            }
+        } else {
+            // New vote
+            if (vote === 1) {
+                question.upvotes += 1;
+            } else {
+                question.downvotes += 1;
+            }
+
+            // Create new vote record
+            await Vote.create({
+                user: req.user.id,
+                targetType: "question",
+                targetId: req.params.id,
+                voteValue: vote
+            });
+
+            await question.save();
+
+            res.json({
+                message: "Vote registered",
+                upvotes: question.upvotes,
+                downvotes: question.downvotes,
+                userVote: vote
+            });
+        }
     } catch (err) {
+        if (err.code === 11000) {
+            // Duplicate vote error (shouldn't happen with our logic, but just in case)
+            return res.status(400).json({ message: "You have already voted on this question" });
+        }
         res.status(500).json({ message: "Vote failed", error: err.message });
     }
 };

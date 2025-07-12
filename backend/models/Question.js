@@ -40,6 +40,11 @@ const questionSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        // Virtual for total score
+        score: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );
@@ -48,5 +53,16 @@ const questionSchema = new mongoose.Schema(
 questionSchema.index({ user: 1, createdAt: -1 });
 questionSchema.index({ tags: 1 });
 questionSchema.index({ title: 'text', description: 'text' });
+
+// Virtual for calculating score
+questionSchema.virtual('totalScore').get(function () {
+    return this.upvotes - this.downvotes;
+});
+
+// Pre-save middleware to update score
+questionSchema.pre('save', function (next) {
+    this.score = this.upvotes - this.downvotes;
+    next();
+});
 
 module.exports = mongoose.model("Question", questionSchema);
