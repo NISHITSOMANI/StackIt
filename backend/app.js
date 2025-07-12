@@ -5,20 +5,17 @@ require("dotenv").config();
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Sample route
+// Import the standalone route/controller
+const authRoutes = require("./routes/authRoutes");
+app.use("/auth", authRoutes); // /auth/register, /auth/login
+
 app.get("/", (req, res) => {
     res.send("StackIt API is running");
 });
-// Routes
-const authRoutes = require("./routes/authRoutes");
-app.use("/auth", authRoutes);
 
-
-// Connect to MongoDB and start server
 mongoose
     .connect(process.env.MONGO_URI)
     .then(() => {
@@ -27,4 +24,4 @@ mongoose
             console.log(`Server running on port ${process.env.PORT}`)
         );
     })
-    .catch((err) => console.error("MongoDB Error: ", err));
+    .catch((err) => console.error("MongoDB connection error:", err));
