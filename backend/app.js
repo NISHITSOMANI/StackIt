@@ -13,6 +13,10 @@ app.use(express.json());
 app.get("/", (req, res) => {
     res.send("StackIt API is running");
 });
+// Routes
+const authRoutes = require("./routes/authRoutes");
+app.use("/auth", authRoutes);
+
 
 // Connect to MongoDB and start server
 mongoose
