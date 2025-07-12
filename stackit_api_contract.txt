@@ -1,0 +1,159 @@
+
+StackIt – API-First Architecture Documentation
+==============================================
+
+Base URL:
+---------
+https://api.stackit.com/v1/
+
+Authentication
+--------------
+POST /auth/register
+Request:
+{
+  "username": "john_doe",
+  "email": "john@example.com",
+  "password": "securepass123"
+}
+Response:
+{
+  "message": "User registered successfully",
+  "token": "JWT_TOKEN_STRING"
+}
+
+POST /auth/login
+Request:
+{
+  "email": "john@example.com",
+  "password": "securepass123"
+}
+Response:
+{
+  "message": "Login successful",
+  "token": "JWT_TOKEN_STRING"
+}
+
+GET /auth/me
+Response:
+{
+  "id": "u123",
+  "username": "john_doe",
+  "email": "john@example.com",
+  "role": "User"
+}
+
+Users
+-----
+GET /users/:id
+Response:
+{
+  "id": "u123",
+  "username": "john_doe",
+  "email": "john@example.com",
+  "role": "User"
+}
+
+PUT /users/:id
+Request:
+{
+  "username": "john_updated"
+}
+Response:
+{
+  "message": "Profile updated"
+}
+
+Questions
+---------
+POST /questions
+Request:
+{
+  "title": "How to use JWT in React?",
+  "description": "<p>I'm confused about storing JWT in React. Any help?</p>",
+  "tags": ["React", "JWT"]
+}
+Response:
+{
+  "message": "Question posted successfully",
+  "questionId": "q789"
+}
+
+Answers
+-------
+POST /questions/:id/answers
+Request:
+{
+  "description": "<p>You should use HttpOnly cookies for security.</p>"
+}
+Response:
+{
+  "message": "Answer submitted",
+  "answerId": "a456"
+}
+
+Voting
+------
+POST /answers/:id/vote
+Request:
+{
+  "vote": 1
+}
+Response:
+{
+  "message": "Vote registered",
+  "votes": 7
+}
+
+POST /answers/:id/accept
+Response:
+{
+  "message": "Answer marked as accepted"
+}
+
+Tags
+----
+GET /tags
+Response:
+[
+  { "id": "t1", "name": "React" },
+  { "id": "t2", "name": "JWT" }
+]
+
+Notifications
+-------------
+GET /notifications
+Response:
+[
+  {
+    "id": "n1",
+    "message": "Someone answered your question",
+    "read": false,
+    "createdAt": "2025-07-12T10:30:00Z"
+  }
+]
+
+POST /notifications/read/:id
+Response:
+{
+  "message": "Notification marked as read"
+}
+
+Admin
+-----
+POST /admin/message
+Request:
+{
+  "subject": "Scheduled Downtime",
+  "body": "The platform will be under maintenance from 2 AM to 4 AM."
+}
+Response:
+{
+  "message": "Message broadcasted successfully"
+}
+
+GET /admin/reports
+Response:
+{
+  "activityLogs": [...],
+  "feedbackStats": [...]
+}

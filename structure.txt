@@ -1,0 +1,61 @@
+stackit/
+├── backend/
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── questionController.js
+│   │   ├── answerController.js
+│   │   ├── voteController.js
+│   │   ├── tagController.js
+│   │   ├── notificationController.js
+│   │   └── adminController.js
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Question.js
+│   │   ├── Answer.js
+│   │   ├── Vote.js
+│   │   ├── Tag.js
+│   │   ├── Notification.js
+│   │   └── Report.js
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── questionRoutes.js
+│   │   ├── answerRoutes.js
+│   │   ├── voteRoutes.js
+│   │   ├── tagRoutes.js
+│   │   ├── notificationRoutes.js
+│   │   └── adminRoutes.js
+│   ├── middlewares/
+│   │   ├── authMiddleware.js
+│   │   ├── roleMiddleware.js
+│   │   └── errorHandler.js
+│   ├── services/
+│   │   ├── notificationService.js
+│   │   └── mailService.js
+│   ├── config/
+│   │   └── db.js
+│   └── app.js
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Editor.jsx
+│   │   │   ├── NotificationBell.jsx
+│   │   │   ├── QuestionCard.jsx
+│   │   │   └── AnswerCard.jsx
+│   │   ├── pages/
+│   │   │   ├── Home.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── Register.jsx
+│   │   │   ├── QuestionView.jsx
+│   │   │   └── AdminPanel.jsx
+│   │   ├── utils/
+│   │   │   ├── api.js
+│   │   │   └── auth.js
+│   │   ├── App.jsx
+│   │   ├── index.js
+│   │   └── styles/
+│   │       └── main.css
+├── README.md
+├── package.json
+├── .env
+└── .gitignore
