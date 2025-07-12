@@ -2,6 +2,8 @@ const Answer = require("../models/Answer");
 const Question = require("../models/Question");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const extractMentions = require("../utils/extractMentions");
+
 
 exports.submitAnswer = async (req, res) => {
     try {
@@ -35,6 +37,26 @@ exports.submitAnswer = async (req, res) => {
             } catch (notifErr) {
                 console.error("Notification creation failed:", notifErr.message);
             }
+        }
+
+        // Notify mentioned users in the answer description
+        try {
+            const mentionedUsernames = extractMentions(description);
+            const currentUser = await User.findById(req.user.id).select("username");
+
+            for (const username of mentionedUsernames) {
+                const mentionedUser = await User.findOne({ username });
+                if (mentionedUser && mentionedUser._id.toString() !== req.user.id) {
+                    await Notification.create({
+                        recipient: mentionedUser._id,
+                        type: "mention",
+                        message: `${currentUser.username} mentioned you in an answer`,
+                        link: `/questions/${question._id}`
+                    });
+                }
+            }
+        } catch (mentionErr) {
+            console.error("Mention notification error:", mentionErr.message);
         }
 
         // Single final response

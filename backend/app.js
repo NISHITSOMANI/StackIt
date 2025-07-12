@@ -28,6 +28,13 @@ app.use("/", tagRoutes);
 const notificationRoutes = require("./routes/notificationRoutes");
 app.use("/", notificationRoutes);
 
+// Comment Route
+const commentRoutes = require("./routes/commentRoutes");
+app.use("/", commentRoutes);
+
+// Feedback Route
+app.use("/", require("./routes/feedbackRoutes"));
+
 
 // Default Route
 app.get("/", (req, res) => {
