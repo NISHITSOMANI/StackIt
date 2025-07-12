@@ -36,7 +36,13 @@ exports.registerUser = async (req, res) => {
 
         res.status(201).json({
             message: `${user.role} registered successfully`,
-            token
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
         });
     } catch (err) {
         res.status(500).json({ message: "Registration failed", error: err.message });
@@ -49,7 +55,12 @@ exports.loginUser = async (req, res) => {
         const { email, password } = req.body;
 
         const user = await User.findOne({ email });
-        if (!user || !(await user.comparePassword(password))) {
+        if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        const isPasswordValid = await user.comparePassword(password);
+        if (!isPasswordValid) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
@@ -61,7 +72,13 @@ exports.loginUser = async (req, res) => {
 
         res.status(200).json({
             message: `${user.role} login successful`,
-            token
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
         });
     } catch (err) {
         res.status(500).json({ message: "Login failed", error: err.message });

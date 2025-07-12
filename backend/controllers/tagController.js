@@ -2,9 +2,19 @@ const Tag = require("../models/Tag");
 
 exports.getAllTags = async (req, res) => {
     try {
-        const tags = await Tag.find({}, { name: 1 });
+        const { tags } = req.query;
 
-        const formatted = tags.map(tag => ({
+        let query = {};
+
+        // If specific tags are requested, filter by them
+        if (tags) {
+            const tagNames = tags.split(",").map(tag => tag.trim().toLowerCase());
+            query.name = { $in: tagNames };
+        }
+
+        const tagDocs = await Tag.find(query, { name: 1 });
+
+        const formatted = tagDocs.map(tag => ({
             id: tag._id,
             name: tag.name.charAt(0).toUpperCase() + tag.name.slice(1)
         }));

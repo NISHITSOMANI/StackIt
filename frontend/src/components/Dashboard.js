@@ -1,31 +1,41 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  MessageSquare, 
-  Users, 
-  TrendingUp, 
-  Clock, 
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { api, handleApiError } from '../services/api';
+import {
+  MessageSquare,
+  Users,
+  TrendingUp,
+  Clock,
   Search,
   Filter,
   ArrowUp,
-  Eye,
   MessageCircle,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
 
 const Dashboard = () => {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [questionsPerPage, setQuestionsPerPage] = useState(5);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    totalQuestions: 0,
+    activeUsers: 0,
+    answersToday: 0,
+    responseTime: '0h'
+  });
 
-  // Mock data
-  const stats = [
-    { title: 'Total Questions', value: '1,234', icon: MessageSquare, color: 'text-blue-600' },
-    { title: 'Active Users', value: '567', icon: Users, color: 'text-green-600' },
-    { title: 'Answers Today', value: '89', icon: TrendingUp, color: 'text-purple-600' },
-    { title: 'Response Time', value: '2.3h', icon: Clock, color: 'text-orange-600' },
+  // Stats data
+  const statsData = [
+    { title: 'Total Questions', value: (stats.totalQuestions || 0).toString(), icon: MessageSquare, color: 'text-blue-600' },
+    { title: 'Active Users', value: (stats.activeUsers || 0).toString(), icon: Users, color: 'text-green-600' },
+    { title: 'Answers Today', value: (stats.answersToday || 0).toString(), icon: TrendingUp, color: 'text-purple-600' },
+    { title: 'Response Time', value: stats.responseTime || '0h', icon: Clock, color: 'text-orange-600' },
   ];
 
   const categories = [
@@ -36,118 +46,55 @@ const Dashboard = () => {
     { id: 'business', name: 'Business' },
   ];
 
-  const allQuestions = [
-    {
-      id: 1,
-      title: 'How to implement authentication in React with JWT?',
-      author: 'John Doe',
-      category: 'Programming',
-      votes: 15,
-      answers: 3,
-      views: 234,
-      time: '2 hours ago',
-      tags: ['React', 'JWT', 'Authentication']
-    },
-    {
-      id: 2,
-      title: 'Best practices for responsive design in 2024',
-      author: 'Jane Smith',
-      category: 'Design',
-      votes: 8,
-      answers: 1,
-      views: 156,
-      time: '4 hours ago',
-      tags: ['CSS', 'Responsive', 'Design']
-    },
-    {
-      id: 3,
-      title: 'Understanding async/await in JavaScript',
-      author: 'Mike Johnson',
-      category: 'Programming',
-      votes: 22,
-      answers: 5,
-      views: 445,
-      time: '6 hours ago',
-      tags: ['JavaScript', 'Async', 'ES6']
-    },
-    {
-      id: 4,
-      title: 'How to optimize database queries for better performance?',
-      author: 'Sarah Wilson',
-      category: 'Technology',
-      votes: 12,
-      answers: 2,
-      views: 189,
-      time: '8 hours ago',
-      tags: ['Database', 'Performance', 'SQL']
-    },
-    {
-      id: 5,
-      title: 'What are the best practices for API design in 2024?',
-      author: 'Alex Chen',
-      category: 'Technology',
-      votes: 18,
-      answers: 4,
-      views: 312,
-      time: '1 day ago',
-      tags: ['API', 'REST', 'Design']
-    },
-    {
-      id: 6,
-      title: 'How to implement dark mode in React applications?',
-      author: 'Emily Davis',
-      category: 'Programming',
-      votes: 14,
-      answers: 2,
-      views: 267,
-      time: '1 day ago',
-      tags: ['React', 'Dark Mode', 'CSS']
-    },
-    {
-      id: 7,
-      title: 'Best tools for code review and collaboration',
-      author: 'David Brown',
-      category: 'Business',
-      votes: 9,
-      answers: 3,
-      views: 178,
-      time: '2 days ago',
-      tags: ['Code Review', 'Collaboration', 'Tools']
-    },
-    {
-      id: 8,
-      title: 'How to handle state management in large React apps?',
-      author: 'Lisa Wang',
-      category: 'Programming',
-      votes: 25,
-      answers: 6,
-      views: 523,
-      time: '2 days ago',
-      tags: ['React', 'State Management', 'Redux']
-    },
-    {
-      id: 9,
-      title: 'What are the latest trends in UI/UX design?',
-      author: 'Mark Taylor',
-      category: 'Design',
-      votes: 11,
-      answers: 2,
-      views: 198,
-      time: '3 days ago',
-      tags: ['UI/UX', 'Design Trends', '2024']
-    },
-    {
-      id: 10,
-      title: 'How to implement real-time features with WebSockets?',
-      author: 'Rachel Green',
-      category: 'Technology',
-      votes: 16,
-      answers: 3,
-      views: 289,
-      time: '3 days ago',
-      tags: ['WebSockets', 'Real-time', 'JavaScript']
+  // Handle search query from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
     }
-  ];
+  }, [location.search]);
+
+  // Fetch questions from API
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        setLoading(true);
+
+        // Check if search query contains hashtags
+        const hashtagMatches = searchQuery.match(/#(\w+)/g);
+        let questionsData;
+
+        if (hashtagMatches && hashtagMatches.length > 0) {
+          // Extract tag names from hashtags and clean them
+          const tagNames = hashtagMatches.map(tag => tag.substring(1).toLowerCase().trim()); // Remove # symbol and normalize
+          console.log('Searching by tags:', tagNames);
+          questionsData = await api.getQuestionsByTags(tagNames);
+        } else {
+          questionsData = await api.getQuestions();
+        }
+
+        // Handle the response format from backend
+        const questionsArray = questionsData.questions || questionsData || [];
+        setQuestions(questionsArray);
+
+        // Update stats based on questions data
+        const questionsCount = questionsArray.length;
+        setStats({
+          totalQuestions: questionsCount,
+          activeUsers: Math.floor(questionsCount * 0.3), // Mock calculation
+          answersToday: Math.floor(questionsCount * 0.1), // Mock calculation
+          responseTime: '2.3h' // Mock data
+        });
+      } catch (err) {
+        setError(handleApiError(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [searchQuery]); // Re-fetch when search query changes
 
   const trendingTopics = [
     { name: 'React Hooks', count: 45 },
@@ -158,12 +105,18 @@ const Dashboard = () => {
   ];
 
   // Filter questions based on search and category
-  const filteredQuestions = allQuestions.filter(question => {
+  const filteredQuestions = Array.isArray(questions) ? questions.filter(question => {
+    // If search query contains hashtags, don't do local filtering (already filtered by backend)
+    const hashtagMatches = searchQuery.match(/#(\w+)/g);
+    if (hashtagMatches && hashtagMatches.length > 0) {
+      return true; // Show all questions returned by backend tag search
+    }
+
+    // Regular text search
     const matchesSearch = question.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         question.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = selectedCategory === 'all' || question.category.toLowerCase() === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+      (question.tags && question.tags.some(tag => tag.name && tag.name.toLowerCase().includes(searchQuery.toLowerCase())));
+    return matchesSearch;
+  }) : [];
 
   // Calculate pagination
   const totalQuestions = filteredQuestions.length;
@@ -198,7 +151,7 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        {stats.map((stat, index) => (
+        {statsData.map((stat, index) => (
           <div key={index} className="card">
             <div className="flex items-center justify-between">
               <div>
@@ -209,10 +162,27 @@ const Dashboard = () => {
                 <stat.icon className="w-6 h-6" />
               </div>
             </div>
-                      </div>
-          ))}
+          </div>
+        ))}
+      </div>
 
+      {/* Loading and Error States */}
+      {loading && (
+        <div className="card">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <span className="ml-3 text-secondary-600">Loading questions...</span>
+          </div>
         </div>
+      )}
+
+      {error && (
+        <div className="card">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            {error}
+          </div>
+        </div>
+      )}
 
       {/* Search and Filter */}
       <div className="card">
@@ -221,7 +191,7 @@ const Dashboard = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-secondary-400 w-4 h-4 lg:w-5 lg:h-5" />
             <input
               type="text"
-              placeholder="Search questions..."
+              placeholder="Search questions or use #tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field pl-8 lg:pl-10"
@@ -255,42 +225,36 @@ const Dashboard = () => {
             </p>
           </div>
           {currentQuestions.map((question) => (
-            <div key={question.id} className="card hover:shadow-md transition-shadow duration-200">
+            <div key={question._id || question.id} className="card hover:shadow-md transition-shadow duration-200">
               <div className="flex items-start gap-3 lg:gap-4">
                 <div className="flex flex-col items-center gap-1 min-w-[50px] lg:min-w-[60px]">
                   <button className="flex flex-col items-center p-1 lg:p-2 hover:bg-secondary-100 rounded-lg transition-colors">
                     <ArrowUp className="w-4 h-4 lg:w-5 lg:h-5 text-secondary-400" />
-                    <span className="text-xs lg:text-sm font-medium text-secondary-900">{question.votes}</span>
+                    <span className="text-xs lg:text-sm font-medium text-secondary-900">0</span>
                   </button>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <Link 
-                    to={`/question/${question.id}`}
+                  <Link
+                    to={`/question/${question._id || question.id}`}
                     className="text-base lg:text-lg font-semibold text-secondary-900 hover:text-primary-600 transition-colors line-clamp-2"
                   >
                     {question.title}
                   </Link>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 text-xs lg:text-sm text-secondary-600">
-                    <span>by {question.author}</span>
+                    <span>by {question.user ? question.user.username : 'Unknown'}</span>
                     <span className="hidden sm:inline">•</span>
-                    <span>{question.time}</span>
-                    <span className="hidden sm:inline">•</span>
-                    <span className="tag text-xs">{question.category}</span>
+                    <span>{question.createdAt ? new Date(question.createdAt).toLocaleDateString() : 'Unknown'}</span>
                   </div>
                   <div className="flex items-center gap-3 lg:gap-4 mt-3">
                     <div className="flex items-center gap-1 text-secondary-600">
                       <MessageCircle className="w-3 h-3 lg:w-4 lg:h-4" />
-                      <span className="text-xs lg:text-sm">{question.answers} answers</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-secondary-600">
-                      <Eye className="w-3 h-3 lg:w-4 lg:h-4" />
-                      <span className="text-xs lg:text-sm">{question.views} views</span>
+                      <span className="text-xs lg:text-sm">{question.answers ? question.answers.length : 0} answers</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1 lg:gap-2 mt-3">
-                    {question.tags.map((tag, index) => (
+                    {question.tags && question.tags.map((tag, index) => (
                       <span key={index} className="tag text-xs">
-                        {tag}
+                        {tag.name}
                       </span>
                     ))}
                   </div>
@@ -345,7 +309,7 @@ const Dashboard = () => {
                   <span className="font-semibold text-secondary-900">{Math.min(endIndex, totalQuestions)}</span> of{' '}
                   <span className="font-semibold text-secondary-900">{totalQuestions}</span> questions
                 </div>
-                
+
                 {/* Page Size Selector */}
                 <div className="flex items-center gap-2">
                   <label className="text-sm text-secondary-600">Show:</label>
@@ -386,13 +350,13 @@ const Dashboard = () => {
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  
+
                   {/* Page Numbers */}
                   <div className="flex items-center gap-1">
                     {(() => {
                       const pages = [];
                       const maxVisiblePages = 7;
-                      
+
                       if (totalPages <= maxVisiblePages) {
                         // Show all pages if total is small
                         for (let i = 1; i <= totalPages; i++) {
@@ -401,31 +365,31 @@ const Dashboard = () => {
                       } else {
                         // Show first page
                         pages.push(1);
-                        
+
                         if (currentPage > 4) {
                           pages.push('...');
                         }
-                        
+
                         // Show pages around current
                         const start = Math.max(2, currentPage - 1);
                         const end = Math.min(totalPages - 1, currentPage + 1);
-                        
+
                         for (let i = start; i <= end; i++) {
                           if (!pages.includes(i)) {
                             pages.push(i);
                           }
                         }
-                        
+
                         if (currentPage < totalPages - 3) {
                           pages.push('...');
                         }
-                        
+
                         // Show last page
                         if (totalPages > 1) {
                           pages.push(totalPages);
                         }
                       }
-                      
+
                       return pages.map((page, index) => {
                         if (page === '...') {
                           return (
@@ -434,16 +398,15 @@ const Dashboard = () => {
                             </span>
                           );
                         }
-                        
+
                         return (
                           <button
                             key={page}
                             onClick={() => handlePageChange(page)}
-                            className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg transition-all duration-200 ${
-                              currentPage === page
-                                ? 'bg-primary-600 text-white shadow-md'
-                                : 'text-secondary-700 bg-white border border-secondary-300 hover:bg-secondary-50 hover:border-secondary-400'
-                            }`}
+                            className={`flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg transition-all duration-200 ${currentPage === page
+                              ? 'bg-primary-600 text-white shadow-md'
+                              : 'text-secondary-700 bg-white border border-secondary-300 hover:bg-secondary-50 hover:border-secondary-400'
+                              }`}
                           >
                             {page}
                           </button>

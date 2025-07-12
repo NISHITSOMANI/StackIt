@@ -5,15 +5,24 @@ const {
     submitAnswer,
     voteAnswer,
     acceptAnswer,
+    updateAnswer,
+    deleteAnswer,
 } = require("../controllers/answerController");
+const { validateAnswer, validateVote } = require("../middlewares/validationMiddleware");
 
 // Submit an answer to a question
-router.post("/questions/:id/answers", auth, submitAnswer);
+router.post("/questions/:id/answers", auth, validateAnswer, submitAnswer);
 
 // Vote on an answer (upvote/downvote)
-router.post("/answers/:id/vote", auth, voteAnswer);
+router.post("/:id/vote", auth, validateVote, voteAnswer);
 
-// Accept an answer as best
-router.post("/answers/:id/accept", auth, acceptAnswer);
+// Accept an answer
+router.post("/:id/accept", auth, acceptAnswer);
+
+// Update an answer
+router.put("/:id", auth, validateAnswer, updateAnswer);
+
+// Delete an answer
+router.delete("/:id", auth, deleteAnswer);
 
 module.exports = router;

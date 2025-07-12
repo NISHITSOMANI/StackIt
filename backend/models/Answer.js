@@ -28,4 +28,8 @@ const answerSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+// Add indexes for better performance
+answerSchema.index({ question: 1, createdAt: -1 });
+answerSchema.index({ user: 1 });
+
 module.exports = mongoose.model("Answer", answerSchema);

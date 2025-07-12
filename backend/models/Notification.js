@@ -8,7 +8,7 @@ const notificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ["answer"],
+        enum: ["answer", "comment", "mention"],
         default: "answer"
     },
     message: {
@@ -17,7 +17,7 @@ const notificationSchema = new mongoose.Schema({
     },
     link: {
         type: String,
-        required: true, 
+        required: true,
     },
     read: {
         type: Boolean,

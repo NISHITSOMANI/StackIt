@@ -6,9 +6,10 @@ const {
     getCurrentUser
 } = require("../controllers/authController");
 const auth = require("../middlewares/authMiddleware");
+const { validateUser } = require("../middlewares/validationMiddleware");
 
 // POST /auth/register
-router.post("/register", registerUser);
+router.post("/register", validateUser, registerUser);
 
 // POST /auth/login
 router.post("/login", loginUser);

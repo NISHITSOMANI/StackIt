@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+      - REACT_APP_AI_SERVICE_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - stackit-network
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb+srv://forgeflow_admin:1i2yIFtsesHZKJ5n@mycluster.mqutucj.mongodb.net/StackIt?retryWrites=true&w=majority&appName=myCluster
+      - JWT_SECRET=vnvu@odoohackathon
+      - AI_SERVICE_URL=http://ai-service:8000
+      - NODE_ENV=development
+      - PORT=5000
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      ai-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/ai-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - stackit-network
+
+  ai-service:
+    build: ./ai-review
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=djangoo-ai-service
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,ai-service
+    volumes:
+      - ./ai-review:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - stackit-network
+
+
+networks:
+  stackit-network:
+    driver: bridge

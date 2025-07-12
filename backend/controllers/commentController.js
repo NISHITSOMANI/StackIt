@@ -2,6 +2,7 @@ const Comment = require("../models/Comment");
 const Answer = require("../models/Answer");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
+const extractMentions = require("../utils/extractMentions");
 
 exports.addComment = async (req, res) => {
     try {
@@ -49,5 +50,19 @@ exports.addComment = async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ message: "Failed to add comment", error: err.message });
+    }
+};
+
+exports.getComments = async (req, res) => {
+    try {
+        const answerId = req.params.id;
+
+        const comments = await Comment.find({ answer: answerId })
+            .populate("user", "username")
+            .sort({ createdAt: -1 });
+
+        res.json(comments);
+    } catch (err) {
+        res.status(500).json({ message: "Failed to fetch comments", error: err.message });
     }
 };

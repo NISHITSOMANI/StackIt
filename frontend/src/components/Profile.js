@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { 
-  Edit, 
-  MessageSquare, 
-  Award, 
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
+import {
+  Edit,
+  MessageSquare,
+  Award,
   Calendar,
-  MapPin,
-  Link as LinkIcon,
   Github,
   Twitter,
   Linkedin,
@@ -14,50 +13,27 @@ import {
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock user data
-  const user = {
-    name: 'John Doe',
-    username: 'johndoe',
-    email: 'john.doe@example.com',
-    avatar: 'JD',
-    bio: 'Full-stack developer passionate about React, Node.js, and building scalable applications. I love helping others learn and solve problems.',
-    location: 'San Francisco, CA',
-    website: 'https://johndoe.dev',
-    joined: 'January 2023',
-    reputation: 1250,
-    badges: [
-      { name: 'Gold Badge', type: 'gold', count: 3 },
-      { name: 'Silver Badge', type: 'silver', count: 8 },
-      { name: 'Bronze Badge', type: 'bronze', count: 15 },
-    ],
-    stats: {
-      questions: 23,
-      answers: 156,
-      accepted: 89,
-      reputation: 1250
-    },
-    recentActivity: [
-      {
-        type: 'question',
-        title: 'How to implement authentication in React with JWT?',
-        time: '2 hours ago',
-        votes: 15
-      },
-      {
-        type: 'answer',
-        title: 'Best practices for responsive design in 2024',
-        time: '1 day ago',
-        votes: 8
-      },
-      {
-        type: 'question',
-        title: 'Understanding async/await in JavaScript',
-        time: '3 days ago',
-        votes: 22
+  // Fetch user data from API
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        setLoading(true);
+        const userData = await api.getCurrentUser();
+        setUser(userData);
+      } catch (err) {
+        setError('Failed to load user profile');
+        console.error('Error fetching user:', err);
+      } finally {
+        setLoading(false);
       }
-    ]
-  };
+    };
+
+    fetchUser();
+  }, []);
 
   const tabs = [
     { id: 'overview', name: 'Overview' },
@@ -77,6 +53,31 @@ const Profile = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="card">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <span className="ml-3 text-secondary-600">Loading profile...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="card">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            {error || 'Failed to load profile'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Profile Header */}
@@ -84,38 +85,32 @@ const Profile = () => {
         <div className="flex flex-col sm:flex-row items-start gap-4 lg:gap-6">
           {/* Avatar */}
           <div className="w-20 h-20 lg:w-24 lg:h-24 bg-primary-100 rounded-full flex items-center justify-center">
-            <span className="text-primary-700 font-bold text-xl lg:text-2xl">{user.avatar}</span>
+            <span className="text-primary-700 font-bold text-xl lg:text-2xl">{user.username ? user.username.substring(0, 2).toUpperCase() : 'U'}</span>
           </div>
 
           {/* User Info */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-2">
-              <h1 className="text-2xl lg:text-3xl font-bold text-secondary-900">{user.name}</h1>
-              <button className="btn-secondary flex items-center gap-2 w-full sm:w-auto">
+              <h1 className="text-2xl lg:text-3xl font-bold text-secondary-900">{user.username}</h1>
+              <button className="btn-secondary flex items-center gap-2 w-full sm:w-auto" disabled>
                 <Edit className="w-4 h-4" />
                 Edit Profile
               </button>
             </div>
-            
+
             <p className="text-secondary-600 mb-4">@{user.username}</p>
-            
-            <p className="text-secondary-700 mb-4">{user.bio}</p>
+
+            <p className="text-secondary-700 mb-4">User profile</p>
 
             {/* User Details */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-secondary-600">
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                <span>{user.location}</span>
-              </div>
-              <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>Joined {user.joined}</span>
+                <span>Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4" />
-                <a href={user.website} className="text-primary-600 hover:underline">
-                  {user.website}
-                </a>
+                <span>Email: {user.email}</span>
               </div>
             </div>
 
@@ -135,7 +130,7 @@ const Profile = () => {
 
           {/* Reputation */}
           <div className="text-right">
-            <div className="text-2xl font-bold text-secondary-900">{user.reputation}</div>
+            <div className="text-2xl font-bold text-secondary-900">0</div>
             <div className="text-sm text-secondary-600">reputation</div>
           </div>
         </div>
@@ -144,19 +139,19 @@ const Profile = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <div className="card text-center">
-          <div className="text-2xl font-bold text-secondary-900">{user.stats.questions}</div>
+          <div className="text-2xl font-bold text-secondary-900">0</div>
           <div className="text-sm text-secondary-600">Questions</div>
         </div>
         <div className="card text-center">
-          <div className="text-2xl font-bold text-secondary-900">{user.stats.answers}</div>
+          <div className="text-2xl font-bold text-secondary-900">0</div>
           <div className="text-sm text-secondary-600">Answers</div>
         </div>
         <div className="card text-center">
-          <div className="text-2xl font-bold text-secondary-900">{user.stats.accepted}</div>
+          <div className="text-2xl font-bold text-secondary-900">0</div>
           <div className="text-sm text-secondary-600">Accepted</div>
         </div>
         <div className="card text-center">
-          <div className="text-2xl font-bold text-secondary-900">{user.stats.reputation}</div>
+          <div className="text-2xl font-bold text-secondary-900">0</div>
           <div className="text-sm text-secondary-600">Reputation</div>
         </div>
       </div>
@@ -169,11 +164,10 @@ const Profile = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
-                }`}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
+                  }`}
               >
                 {tab.name}
               </button>
@@ -188,16 +182,17 @@ const Profile = () => {
             <div>
               <h3 className="text-lg font-semibold text-secondary-900 mb-4">Badges</h3>
               <div className="flex gap-4">
-                {user.badges.map((badge, index) => (
+                {Array.isArray(user.badges) ? user.badges.map((badge, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full ${
-                      badge.type === 'gold' ? 'bg-yellow-400' :
+                    <div className={`w-4 h-4 rounded-full ${badge.type === 'gold' ? 'bg-yellow-400' :
                       badge.type === 'silver' ? 'bg-gray-400' : 'bg-orange-500'
-                    }`}></div>
+                      }`}></div>
                     <span className="text-sm font-medium text-secondary-900">{badge.name}</span>
                     <span className="text-sm text-secondary-600">({badge.count})</span>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-secondary-600">No badges yet</p>
+                )}
               </div>
             </div>
 
@@ -205,7 +200,7 @@ const Profile = () => {
             <div>
               <h3 className="text-lg font-semibold text-secondary-900 mb-4">Recent Activity</h3>
               <div className="space-y-3">
-                {user.recentActivity.map((activity, index) => (
+                {Array.isArray(user.recentActivity) ? user.recentActivity.map((activity, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 hover:bg-secondary-50 rounded-lg transition-colors">
                     {getActivityIcon(activity.type)}
                     <div className="flex-1">
@@ -216,7 +211,9 @@ const Profile = () => {
                       {activity.votes} votes
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-secondary-600">No recent activity</p>
+                )}
               </div>
             </div>
           </div>

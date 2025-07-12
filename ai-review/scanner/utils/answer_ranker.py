@@ -47,3 +47,40 @@ def clean_answers(answer_list):
             continue
         valid_answers.append(ans)
     return valid_answers
+
+def rank_answers(question, answers):
+    """
+    Ranks answers based on quality and relevance.
+    Returns list of tuples: (index, score, answer)
+    """
+    if not answers:
+        return []
+    
+    # Simple ranking based on length and content quality
+    ranked = []
+    for i, answer in enumerate(answers):
+        score = 0.5  # Base score
+        
+        # Length bonus (but not too long)
+        length = len(answer.split())
+        if 10 <= length <= 200:
+            score += 0.2
+        elif length > 200:
+            score += 0.1
+        
+        # Quality checks
+        if not is_profanity(answer) and not is_low_effort(answer):
+            score += 0.3
+        
+        # Relevance bonus (simple keyword matching)
+        question_words = set(question.lower().split())
+        answer_words = set(answer.lower().split())
+        common_words = question_words.intersection(answer_words)
+        if common_words:
+            score += min(0.2, len(common_words) * 0.05)
+        
+        ranked.append((i, score, answer))
+    
+    # Sort by score (highest first)
+    ranked.sort(key=lambda x: x[1], reverse=True)
+    return ranked

@@ -2,7 +2,7 @@
 
 A modern, responsive Q&A forum platform built with React JS and Tailwind CSS. StackIt provides a complete solution for creating and managing a question-and-answer community.
 
-## 🚀 Features
+## Features
 
 ### Core Functionality
 - **Dashboard Overview**: Statistics, recent questions, and trending topics

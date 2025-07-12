@@ -3,6 +3,7 @@ const Question = require("../models/Question");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const extractMentions = require("../utils/extractMentions");
+const { filterContent, rankAnswers } = require("../services/aiService");
 
 
 exports.submitAnswer = async (req, res) => {
@@ -10,13 +11,21 @@ exports.submitAnswer = async (req, res) => {
         const { description } = req.body;
         const questionId = req.params.id;
 
+        // Filter content using AI service
+        const contentFilter = await filterContent(description);
+        if (!contentFilter.is_clean) {
+            return res.status(400).json({
+                message: "Answer contains inappropriate language or is too low effort"
+            });
+        }
+
         const question = await Question.findById(questionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
 
         const answer = await Answer.create({
-            content: description,
+            content: contentFilter.filtered_content,
             user: req.user.id,
             question: questionId,
         });
@@ -114,5 +123,69 @@ exports.acceptAnswer = async (req, res) => {
         res.json({ message: "Answer marked as accepted" });
     } catch (err) {
         res.status(500).json({ message: "Accepting answer failed", error: err.message });
+    }
+};
+
+exports.updateAnswer = async (req, res) => {
+    try {
+        const { content } = req.body;
+        const answerId = req.params.id;
+
+        const answer = await Answer.findById(answerId);
+        if (!answer) {
+            return res.status(404).json({ message: "Answer not found" });
+        }
+
+        // Check if user owns the answer
+        if (answer.user.toString() !== req.user.id) {
+            return res.status(403).json({ message: "You can only edit your own answers" });
+        }
+
+        // Filter content using AI service
+        const contentFilter = await filterContent(content);
+        if (!contentFilter.is_clean) {
+            return res.status(400).json({
+                message: "Answer contains inappropriate language or is too low effort"
+            });
+        }
+
+        answer.content = contentFilter.filtered_content;
+        await answer.save();
+
+        res.json({
+            message: "Answer updated successfully",
+            answer: answer
+        });
+    } catch (err) {
+        res.status(500).json({ message: "Failed to update answer", error: err.message });
+    }
+};
+
+exports.deleteAnswer = async (req, res) => {
+    try {
+        const answerId = req.params.id;
+
+        const answer = await Answer.findById(answerId);
+        if (!answer) {
+            return res.status(404).json({ message: "Answer not found" });
+        }
+
+        // Check if user owns the answer
+        if (answer.user.toString() !== req.user.id) {
+            return res.status(403).json({ message: "You can only delete your own answers" });
+        }
+
+        // Remove answer from question's answers array
+        const question = await Question.findById(answer.question);
+        if (question) {
+            question.answers = question.answers.filter(a => a.toString() !== answerId);
+            await question.save();
+        }
+
+        await Answer.findByIdAndDelete(answerId);
+
+        res.json({ message: "Answer deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Failed to delete answer", error: err.message });
     }
 };

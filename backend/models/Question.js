@@ -32,8 +32,21 @@ const questionSchema = new mongoose.Schema(
             ref: "Answer",
             default: null,
         },
+        upvotes: {
+            type: Number,
+            default: 0,
+        },
+        downvotes: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );
+
+// Add indexes for better performance
+questionSchema.index({ user: 1, createdAt: -1 });
+questionSchema.index({ tags: 1 });
+questionSchema.index({ title: 'text', description: 'text' });
 
 module.exports = mongoose.model("Question", questionSchema);
