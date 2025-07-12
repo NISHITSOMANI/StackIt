@@ -8,10 +8,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Import the standalone route/controller
+// Auth Route
 const authRoutes = require("./routes/authRoutes");
-app.use("/auth", authRoutes); // /auth/register, /auth/login
+app.use("/auth", authRoutes); 
 
+// Question Route
+const questionRoutes = require("./routes/questionRoutes");
+app.use("/questions", questionRoutes);
+
+// Answer Route
+const answerRoutes = require("./routes/answerRoutes");
+app.use("/", answerRoutes); 
+
+// Tag Route
+const tagRoutes = require("./routes/tagRoutes");
+app.use("/", tagRoutes);
+
+// Default Route
 app.get("/", (req, res) => {
     res.send("StackIt API is running");
 });

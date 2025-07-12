@@ -8,16 +8,14 @@ const questionSchema = new mongoose.Schema(
             trim: true,
         },
         description: {
-            type: String, // Rich text as HTML/markdown string
+            type: String, // Rich text (HTML/markdown)
             required: true,
         },
-        tags: [
-            {
-                type: String,
-                trim: true,
-                lowercase: true,
-            },
-        ],
+        tags: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Tag"
+        }],
+
         user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",

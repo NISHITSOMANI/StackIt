@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const auth = require("../middlewares/authMiddleware");
 
 const generateToken = (user) => {
     return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
@@ -56,6 +57,16 @@ router.post("/login", async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ message: "Login failed", error: err.message });
+    }
+});
+// GET /auth/me
+router.get("/me", auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select("-password");
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ message: "Failed to fetch user", error: err.message });
     }
 });
 
