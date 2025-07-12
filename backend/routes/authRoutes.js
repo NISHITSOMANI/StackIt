@@ -1,73 +1,19 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const User = require("../models/User");
+const {
+    registerUser,
+    loginUser,
+    getCurrentUser
+} = require("../controllers/authController");
 const auth = require("../middlewares/authMiddleware");
 
-const generateToken = (user) => {
-    return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-        expiresIn: "7d",
-    });
-};
-
 // POST /auth/register
-router.post("/register", async (req, res) => {
-    try {
-        const { username, email, password } = req.body;
-
-        const existing = await User.findOne({ $or: [{ email }, { username }] });
-        if (existing) {
-            return res.status(400).json({ message: "User already exists" });
-        }
-
-        const user = new User({ username, email, password });
-        await user.save();
-
-        const token = generateToken(user);
-
-        res.status(201).json({
-            message: "User registered successfully",
-            token
-        });
-    } catch (err) {
-        res.status(500).json({ message: "Registration failed", error: err.message });
-    }
-});
+router.post("/register", registerUser);
 
 // POST /auth/login
-router.post("/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
+router.post("/login", loginUser);
 
-        const user = await User.findOne({ email });
-        if (!user || !(await user.comparePassword(password))) {
-            return res.status(401).json({ message: "Invalid credentials" });
-        }
-
-        if (user.banned) {
-            return res.status(403).json({ message: "User is banned" });
-        }
-
-        const token = generateToken(user);
-
-        res.status(200).json({
-            message: "Login successful",
-            token
-        });
-    } catch (err) {
-        res.status(500).json({ message: "Login failed", error: err.message });
-    }
-});
 // GET /auth/me
-router.get("/me", auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select("-password");
-        if (!user) return res.status(404).json({ message: "User not found" });
-        res.json(user);
-    } catch (err) {
-        res.status(500).json({ message: "Failed to fetch user", error: err.message });
-    }
-});
+router.get("/me", auth, getCurrentUser);
 
 module.exports = router;
