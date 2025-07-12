@@ -1,5 +1,9 @@
 const Answer = require("../models/Answer");
 const Question = require("../models/Question");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
+const extractMentions = require("../utils/extractMentions");
+
 
 exports.submitAnswer = async (req, res) => {
     try {
@@ -7,7 +11,9 @@ exports.submitAnswer = async (req, res) => {
         const questionId = req.params.id;
 
         const question = await Question.findById(questionId);
-        if (!question) return res.status(404).json({ message: "Question not found" });
+        if (!question) {
+            return res.status(404).json({ message: "Question not found" });
+        }
 
         const answer = await Answer.create({
             content: description,
@@ -18,6 +24,42 @@ exports.submitAnswer = async (req, res) => {
         question.answers.push(answer._id);
         await question.save();
 
+        // Create notification for question owner (if not answering their own question)
+        if (question.user.toString() !== req.user.id) {
+            try {
+                const currentUser = await User.findById(req.user.id).select("username");
+                await Notification.create({
+                    recipient: question.user,
+                    type: "answer",
+                    message: `${currentUser.username} answered your question`,
+                    link: `/questions/${question._id}`,
+                });
+            } catch (notifErr) {
+                console.error("Notification creation failed:", notifErr.message);
+            }
+        }
+
+        // Notify mentioned users in the answer description
+        try {
+            const mentionedUsernames = extractMentions(description);
+            const currentUser = await User.findById(req.user.id).select("username");
+
+            for (const username of mentionedUsernames) {
+                const mentionedUser = await User.findOne({ username });
+                if (mentionedUser && mentionedUser._id.toString() !== req.user.id) {
+                    await Notification.create({
+                        recipient: mentionedUser._id,
+                        type: "mention",
+                        message: `${currentUser.username} mentioned you in an answer`,
+                        link: `/questions/${question._id}`
+                    });
+                }
+            }
+        } catch (mentionErr) {
+            console.error("Mention notification error:", mentionErr.message);
+        }
+
+        // Single final response
         res.status(201).json({
             message: "Answer submitted",
             answerId: answer._id,

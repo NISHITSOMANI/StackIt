@@ -1,6 +1,6 @@
 const Question = require("../models/Question");
 const Tag = require("../models/Tag");
-
+const logActivity = require("../services/activityLogger");
 
 exports.createQuestion = async (req, res) => {
     try {
@@ -22,6 +22,12 @@ exports.createQuestion = async (req, res) => {
             description,
             user: req.user.id,
             tags: tagDocs.map(tag => tag._id)
+        });
+
+        await logActivity({
+            userId: req.user.id,
+            action: "Posted a question",
+            details: `Question: ${title}`,
         });
 
         res.status(201).json({

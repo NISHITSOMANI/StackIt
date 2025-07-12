@@ -1,0 +1,7 @@
+# Ignore node_modules at all levels
+node_modules/
+*/node_modules/
+
+# Ignore Python/Virtualenv files
+.venv
+.env

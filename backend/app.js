@@ -24,6 +24,20 @@ app.use("/", answerRoutes);
 const tagRoutes = require("./routes/tagRoutes");
 app.use("/", tagRoutes);
 
+// Notification Route
+const notificationRoutes = require("./routes/notificationRoutes");
+app.use("/", notificationRoutes);
+
+// Comment Route
+const commentRoutes = require("./routes/commentRoutes");
+app.use("/", commentRoutes);
+
+// Feedback Route
+app.use("/", require("./routes/feedbackRoutes"));
+
+// Admin Route
+app.use("/", require("./routes/adminRoutes"));
+
 // Default Route
 app.get("/", (req, res) => {
     res.send("StackIt API is running");

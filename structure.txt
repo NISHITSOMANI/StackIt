@@ -1,29 +1,29 @@
 stackit/
 ├── backend/
 │   ├── controllers/
-│   │   ├── authController.js
-│   │   ├── questionController.js
-│   │   ├── answerController.js
+│   │   ├── authController.js  ~~~
+│   │   ├── questionController.js ~~~
+│   │   ├── answerController.js ~~~
 │   │   ├── voteController.js
-│   │   ├── tagController.js
-│   │   ├── notificationController.js
+│   │   ├── tagController.js ~~~
+│   │   ├── notificationController.js ~~~
 │   │   └── adminController.js
 │   ├── models/
-│   │   ├── User.js
-│   │   ├── Question.js
-│   │   ├── Answer.js
-│   │   ├── Vote.js
-│   │   ├── Tag.js
-│   │   ├── Notification.js
-│   │   └── Report.js
+│   │   ├── User.js~~~
+│   │   ├── Question.js~~~
+│   │   ├── Answer.js~~~
+│   │   ├── Vote.js~~~
+│   │   ├── Tag.js~~~
+│   │   └── Notification.js~~~
+│   │
 │   ├── routes/
-│   │   ├── authRoutes.js
-│   │   ├── questionRoutes.js
-│   │   ├── answerRoutes.js
+│   │   ├── authRoutes.js~~~
+│   │   ├── questionRoutes.js~~~
+│   │   ├── answerRoutes.js~~~
 │   │   ├── voteRoutes.js
-│   │   ├── tagRoutes.js
-│   │   ├── notificationRoutes.js
-│   │   └── adminRoutes.js
+│   │   ├── tagRoutes.js~~~
+│   │   ├── notificationRoutes.js~~~
+│   │   └── adminRoutes.js~~~
 │   ├── middlewares/
 │   │   ├── authMiddleware.js
 │   │   ├── roleMiddleware.js

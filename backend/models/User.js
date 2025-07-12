@@ -21,12 +21,19 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ["Guest", "User", "Admin"],
+            enum: ["User", "Admin"],
             default: "User",
         },
         banned: {
             type: Boolean,
             default: false,
+        },
+        adminStatus: {
+            type: String,
+            enum: ["approved", "pending", "declined"],
+            default: function () {
+                return this.role === "Admin" ? "pending" : undefined;
+            }
         }
     },
     { timestamps: true }
